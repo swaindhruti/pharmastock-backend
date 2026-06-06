@@ -7,6 +7,7 @@ import (
 	"github.com/swaindhruti/pharmastock-backend/internal/database"
 	"github.com/swaindhruti/pharmastock-backend/internal/health"
 	"github.com/swaindhruti/pharmastock-backend/internal/router"
+	"github.com/swaindhruti/pharmastock-backend/internal/stockist"
 )
 
 type App struct {
@@ -15,7 +16,7 @@ type App struct {
 	Echo     *echo.Echo
 }
 
-func NewApp(cfg *config.Config) (*App, error) {
+func NewApp() (*App, error) {
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -29,8 +30,11 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	e := echo.New()
 
+	stockistHandler := stockist.NewModule(db.Pool)
+
 	handlers := &router.Handlers{
-		Health: health.NewHandler(db),
+		Health:   health.NewHandler(db),
+		Stockist: stockistHandler,
 	}
 
 	router.RegisterRoutes(e, handlers)
@@ -40,4 +44,12 @@ func NewApp(cfg *config.Config) (*App, error) {
 		Database: db,
 		Echo:     e,
 	}, nil
+}
+
+func (a *App) Start() error {
+	return a.Echo.Start(":" + a.Config.AppPort)
+}
+
+func (a *App) Shutdown() {
+	a.Database.Close()
 }
