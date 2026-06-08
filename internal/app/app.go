@@ -6,6 +6,7 @@ import (
 	"github.com/swaindhruti/pharmastock-backend/internal/config"
 	"github.com/swaindhruti/pharmastock-backend/internal/database"
 	"github.com/swaindhruti/pharmastock-backend/internal/health"
+	"github.com/swaindhruti/pharmastock-backend/internal/middleware"
 	"github.com/swaindhruti/pharmastock-backend/internal/router"
 	"github.com/swaindhruti/pharmastock-backend/internal/stockist"
 )
@@ -29,6 +30,8 @@ func NewApp() (*App, error) {
 	}
 
 	e := echo.New()
+
+	e.Use(middleware.RequestID(), middleware.Logger("api"), middleware.Recovery())
 
 	stockistHandler := stockist.NewModule(db.Pool)
 

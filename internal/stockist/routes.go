@@ -1,8 +1,15 @@
 package stockist
 
-import "github.com/labstack/echo/v5"
+import (
+	"github.com/labstack/echo/v5"
+	"time"
+
+	"github.com/swaindhruti/pharmastock-backend/internal/middleware"
+)
 
 func RegisterRoutes(group *echo.Group, h *Handler) {
+	group.Use(middleware.RateLimit(100, 5*time.Minute))
+
 	group.POST("", h.CreateStockist)
 	group.GET("/:email", h.GetStockistByEmail)
 	group.PUT("/:id", h.UpdateStockist)
