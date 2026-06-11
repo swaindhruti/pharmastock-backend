@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	AppPort string
+	AppEnv  string
 
 	DBHost     string
 	DBPort     string
@@ -32,6 +33,7 @@ func LoadConfig() (*Config, error) {
 
 	config := &Config{
 		AppPort:    getEnv("APP_PORT", "8080"),
+		AppEnv:     getEnv("APP_ENV", "development"),
 		DBHost:     getEnv("DB_HOST", "localhost"),
 		DBPort:     getEnv("DB_PORT", "5432"),
 		DBUser:     getEnv("DB_USER", "postgres"),

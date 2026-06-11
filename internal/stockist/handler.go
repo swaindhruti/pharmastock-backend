@@ -1,9 +1,12 @@
 package stockist
 
 import (
-	"fmt"
+	"errors"
+	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v5"
+	"github.com/swaindhruti/pharmastock-backend/internal/common"
 )
 
 type Handler struct {
@@ -16,77 +19,103 @@ func NewHandler(service Service) *Handler {
 
 func (h *Handler) CreateStockist(c *echo.Context) error {
 
-	var stockist Stockist
+	var req CreateStockistRequest
 
-	if err := c.Bind(&stockist); err != nil {
-		return err
+	if err := c.Bind(&req); err != nil {
+		return common.APIErrorResponse(c, http.StatusBadRequest, "invalid request body")
 	}
 
-	if err := ValidateStockist(&stockist); err != nil {
-		return err
+	if err := validate.Struct(&req); err != nil {
+		return common.APIErrorResponse(c, http.StatusBadRequest, err.Error())
 	}
 
-	return h.service.CreateStockist(c.Request().Context(), &stockist)
+	stockist := req.ToDomain()
+
+	if err := h.service.CreateStockist(c.Request().Context(), stockist); err != nil {
+		if errors.Is(err, ErrDuplicateEmail) {
+			return common.APIErrorResponse(c, http.StatusConflict, err.Error())
+		}
+		return common.APIErrorResponse(c, http.StatusInternalServerError, "failed to create stockist")
+	}
+
+	return common.APISuccessResponse(c, http.StatusCreated, NewStockistResponse(stockist))
 }
 
 func (h *Handler) GetStockistByEmail(c *echo.Context) error {
 
-	email := c.QueryParam("email")
+	email := c.Param("email")
 	if email == "" {
-		return echo.NewHTTPError(400, "email query parameter is required")
+		return common.APIErrorResponse(c, http.StatusBadRequest, "email is required")
 	}
 
 	stockist, err := h.service.GetStockistByEmail(c.Request().Context(), email)
 	if err != nil {
-		return echo.NewHTTPError(404, "stockist not found")
+		if errors.Is(err, ErrNotFound) {
+			return common.APIErrorResponse(c, http.StatusNotFound, "stockist not found")
+		}
+		return common.APIErrorResponse(c, http.StatusInternalServerError, "failed to get stockist")
 	}
 
-	return c.JSON(200, stockist)
+	return common.APISuccessResponse(c, http.StatusOK, NewStockistResponse(stockist))
 }
 
 func (h *Handler) UpdateStockist(c *echo.Context) error {
 
-	var stockist Stockist
-
-	if err := c.Bind(&stockist); err != nil {
-		return err
+	idParam := c.Param("id")
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		return common.APIErrorResponse(c, http.StatusBadRequest, "invalid stockist id")
 	}
 
-	if err := ValidateStockist(&stockist); err != nil {
-		return err
+	var req UpdateStockistRequest
+
+	if err := c.Bind(&req); err != nil {
+		return common.APIErrorResponse(c, http.StatusBadRequest, "invalid request body")
 	}
 
-	return h.service.UpdateStockist(c.Request().Context(), &stockist)
+	if err := validate.Struct(&req); err != nil {
+		return common.APIErrorResponse(c, http.StatusBadRequest, err.Error())
+	}
+
+	stockist := req.ToDomain(id)
+
+	if err := h.service.UpdateStockist(c.Request().Context(), stockist); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return common.APIErrorResponse(c, http.StatusNotFound, "stockist not found")
+		}
+		return common.APIErrorResponse(c, http.StatusInternalServerError, "failed to update stockist")
+	}
+
+	return common.APISuccessResponse(c, http.StatusOK, NewStockistResponse(stockist))
 }
 
 func (h *Handler) DeleteStockist(c *echo.Context) error {
 
-	email := c.QueryParam("email")
-
-	if email == "" {
-		return echo.NewHTTPError(400, "email query parameter is required")
-	}
-
-	idParam := c.QueryParam("id")
-	if idParam == "" {
-		return echo.NewHTTPError(400, "id query parameter is required")
-	}
-
-	var id int64
-	_, err := fmt.Sscanf(idParam, "%d", &id)
+	idParam := c.Param("id")
+	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(400, "invalid id query parameter")
+		return common.APIErrorResponse(c, http.StatusBadRequest, "invalid stockist id")
 	}
 
-	return h.service.DeleteStockist(c.Request().Context(), email, id)
+	if err := h.service.DeleteStockist(c.Request().Context(), id); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return common.APIErrorResponse(c, http.StatusNotFound, "stockist not found")
+		}
+		return common.APIErrorResponse(c, http.StatusInternalServerError, "failed to delete stockist")
+	}
+
+	return common.APISuccessMessage(c, http.StatusOK, "stockist deleted successfully", nil)
 }
 
 func (h *Handler) ListStockists(c *echo.Context) error {
 
-	stockists, err := h.service.ListStockists(c.Request().Context())
+	page, _ := strconv.Atoi(c.QueryParam("page"))
+	limit, _ := strconv.Atoi(c.QueryParam("limit"))
+
+	result, err := h.service.ListStockists(c.Request().Context(), page, limit)
 	if err != nil {
-		return echo.NewHTTPError(500, "failed to list stockists")
+		return common.APIErrorResponse(c, http.StatusInternalServerError, "failed to list stockists")
 	}
 
-	return c.JSON(200, stockists)
+	return common.APISuccessResponse(c, http.StatusOK, NewPaginatedStockistResponse(result))
 }

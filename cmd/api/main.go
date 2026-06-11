@@ -1,7 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/swaindhruti/pharmastock-backend/internal/app"
 )
@@ -13,10 +17,10 @@ func main() {
 	}
 	defer application.Shutdown()
 
-	if err := application.Start(); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	} else {
-		log.Printf("Server started on port %s", application.Config.AppPort)
-	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
+	if err := application.Start(ctx); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }

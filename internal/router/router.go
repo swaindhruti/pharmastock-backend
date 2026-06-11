@@ -4,12 +4,14 @@ import (
 	"github.com/labstack/echo/v5"
 
 	"github.com/swaindhruti/pharmastock-backend/internal/health"
+	"github.com/swaindhruti/pharmastock-backend/internal/retailer"
 	"github.com/swaindhruti/pharmastock-backend/internal/stockist"
 )
 
 type Handlers struct {
 	Health   *health.Handler
 	Stockist *stockist.Handler
+	Retailer *retailer.Handler
 }
 
 func RegisterRoutes(e *echo.Echo, handlers *Handlers) {
@@ -22,4 +24,8 @@ func RegisterRoutes(e *echo.Echo, handlers *Handlers) {
 	// Stockist Endpoints
 	stockistGroup := v1.Group("/stockists")
 	stockist.RegisterRoutes(stockistGroup, handlers.Stockist)
+
+	// Retailer Endpoints
+	retailerGroup := v1.Group("/retailers")
+	retailer.RegisterRoutes(retailerGroup, handlers.Retailer)
 }

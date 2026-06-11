@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/swaindhruti/pharmastock-backend/internal/common"
 )
 
 type Repository interface {
@@ -33,7 +32,7 @@ func (r *repository) CreateJob(ctx context.Context, stockistID int64, filePath s
 	err := r.db.QueryRow(ctx, query, stockistID, filePath).Scan(&jobID)
 
 	if err != nil {
-		return 0, common.NewInternalError(fmt.Sprintf("failed to create job: %v", err))
+		return 0, fmt.Errorf("failed to create job: %w", err)
 	}
 
 	return jobID, nil
@@ -45,7 +44,7 @@ func (r *repository) GetPendingJobs(ctx context.Context, limit int) ([]*Job, err
 
 	rows, err := r.db.Query(ctx, query, limit)
 	if err != nil {
-		return nil, common.NewInternalError(fmt.Sprintf("failed to get pending jobs: %v", err))
+		return nil, fmt.Errorf("failed to get pending jobs: %w", err)
 	}
 	defer rows.Close()
 
@@ -57,13 +56,13 @@ func (r *repository) GetPendingJobs(ctx context.Context, limit int) ([]*Job, err
 			&job.ErrorMessage, &job.CreatedAt, &job.StartedAt, &job.CompletedAt)
 
 		if err != nil {
-			return nil, common.NewInternalError(fmt.Sprintf("failed to scan job: %v", err))
+			return nil, fmt.Errorf("failed to scan job: %w", err)
 		}
 
 		jobs = append(jobs, job)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, common.NewInternalError(fmt.Sprintf("error iterating over job rows: %v", err))
+		return nil, fmt.Errorf("error iterating over job rows: %w", err)
 	}
 
 	return jobs, nil
@@ -76,11 +75,11 @@ func (r *repository) MarkJobProcessing(ctx context.Context, jobID int64) error {
 	result, err := r.db.Exec(ctx, query, jobID)
 
 	if err != nil {
-		return common.NewInternalError(fmt.Sprintf("failed to mark job as processing: %v", err))
+		return fmt.Errorf("failed to mark job as processing: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
-		return common.NewNotFoundError(common.ErrJobNotFound)
+		return fmt.Errorf("job with ID %d not found", jobID)
 	}
 
 	return nil
@@ -92,11 +91,11 @@ func (r *repository) MarkJobCompleted(ctx context.Context, jobID int64) error {
 
 	result, err := r.db.Exec(ctx, query, jobID)
 	if err != nil {
-		return common.NewInternalError(fmt.Sprintf("failed to mark job as completed: %v", err))
+		return fmt.Errorf("failed to mark job as completed: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
-		return common.NewNotFoundError(common.ErrJobNotFound)
+		return fmt.Errorf("job with ID %d not found", jobID)
 	}
 
 	return nil
@@ -109,11 +108,11 @@ func (r *repository) MarkJobFailed(ctx context.Context, jobID int64, errorMessag
 	result, err := r.db.Exec(ctx, query, jobID, errorMessage)
 
 	if err != nil {
-		return common.NewInternalError(fmt.Sprintf("failed to mark job as failed: %v", err))
+		return fmt.Errorf("failed to mark job as failed: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
-		return common.NewNotFoundError(common.ErrJobNotFound)
+		return fmt.Errorf("job with ID %d not found", jobID)
 	}
 
 	return nil

@@ -6,6 +6,7 @@ import (
 
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
+	"github.com/swaindhruti/pharmastock-backend/internal/common"
 )
 
 func RateLimit(requests int, duration time.Duration) echo.MiddlewareFunc {
@@ -30,18 +31,10 @@ func RateLimit(requests int, duration time.Duration) echo.MiddlewareFunc {
 			return id, nil
 		},
 		ErrorHandler: func(c *echo.Context, err error) error {
-			return c.JSON(http.StatusInternalServerError, map[string]any{
-				"success": false,
-				"error":   "Internal Server Error",
-				"data":    nil,
-			})
+			return common.APIErrorResponse(c, http.StatusInternalServerError, "Internal Server Error")
 		},
 		DenyHandler: func(c *echo.Context, identifier string, err error) error {
-			return c.JSON(http.StatusTooManyRequests, map[string]any{
-				"success": false,
-				"error":   "Too many requests. Please try again later.",
-				"data":    nil,
-			})
+			return common.APIErrorResponse(c, http.StatusTooManyRequests, "Too many requests. Please try again later.")
 		},
 	}
 
