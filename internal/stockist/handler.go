@@ -41,14 +41,15 @@ func (h *Handler) CreateStockist(c *echo.Context) error {
 	return common.APISuccessResponse(c, http.StatusCreated, NewStockistResponse(stockist))
 }
 
-func (h *Handler) GetStockistByEmail(c *echo.Context) error {
+func (h *Handler) GetStockistByID(c *echo.Context) error {
 
-	email := c.Param("email")
-	if email == "" {
-		return common.APIErrorResponse(c, http.StatusBadRequest, "email is required")
+	idParam := c.Param("id")
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		return common.APIErrorResponse(c, http.StatusBadRequest, "invalid stockist id")
 	}
 
-	stockist, err := h.service.GetStockistByEmail(c.Request().Context(), email)
+	stockist, err := h.service.GetStockistByID(c.Request().Context(), id)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return common.APIErrorResponse(c, http.StatusNotFound, "stockist not found")

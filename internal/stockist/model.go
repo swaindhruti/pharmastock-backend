@@ -1,5 +1,7 @@
 package stockist
 
+import "time"
+
 type Stockist struct {
 	StockistID   int64
 	OwnerName    string
@@ -9,7 +11,9 @@ type Stockist struct {
 	Country      string
 	State        string
 	City         string
-	PinCode      int
+	PinCode      string
 	Address      string
 	GSTNumber    string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }

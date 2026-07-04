@@ -9,6 +9,7 @@ import (
 
 type Repository interface {
 	CreateStockist(ctx context.Context, stockist *Stockist) error
+	GetStockistByID(ctx context.Context, id int64) (*Stockist, error)
 	GetStockistByEmail(ctx context.Context, email string) (*Stockist, error)
 	UpdateStockist(ctx context.Context, stockist *Stockist) error
 	DeleteStockist(ctx context.Context, id int64) error
@@ -37,6 +38,25 @@ func (r *repository) CreateStockist(ctx context.Context, stockist *Stockist) err
 	}
 
 	return nil
+}
+
+func (r *repository) GetStockistByID(ctx context.Context, id int64) (*Stockist, error) {
+
+	query := `SELECT id, owner_name, business_name, email, phone, country, state, city, pin_code, address, gst_number
+			  FROM stockists WHERE id = $1`
+
+	row := r.db.QueryRow(ctx, query, id)
+
+	stockist := &Stockist{}
+	err := row.Scan(&stockist.StockistID, &stockist.OwnerName, &stockist.BusinessName, &stockist.Email,
+		&stockist.Phone, &stockist.Country, &stockist.State, &stockist.City, &stockist.PinCode,
+		&stockist.Address, &stockist.GSTNumber)
+
+	if err != nil {
+		return nil, fmt.Errorf("stockist not found: %w", ErrNotFound)
+	}
+
+	return stockist, nil
 }
 
 func (r *repository) GetStockistByEmail(ctx context.Context, email string) (*Stockist, error) {

@@ -1,5 +1,7 @@
 package stockist
 
+import "time"
+
 type CreateStockistRequest struct {
 	OwnerName    string `json:"name" validate:"required,min=3,max=50"`
 	BusinessName string `json:"business_name" validate:"required,min=3,max=100"`
@@ -8,7 +10,7 @@ type CreateStockistRequest struct {
 	Country      string `json:"country" validate:"required"`
 	State        string `json:"state" validate:"required"`
 	City         string `json:"city" validate:"required"`
-	PinCode      int    `json:"pin_code" validate:"required,numeric"`
+	PinCode      string `json:"pin_code" validate:"required"`
 	Address      string `json:"address" validate:"required,min=10,max=200"`
 	GSTNumber    string `json:"gst_number" validate:"required"`
 }
@@ -36,7 +38,7 @@ type UpdateStockistRequest struct {
 	Country      string `json:"country" validate:"required"`
 	State        string `json:"state" validate:"required"`
 	City         string `json:"city" validate:"required"`
-	PinCode      int    `json:"pin_code" validate:"required,numeric"`
+	PinCode      string `json:"pin_code" validate:"required"`
 	Address      string `json:"address" validate:"required,min=10,max=200"`
 	GSTNumber    string `json:"gst_number" validate:"required"`
 }
@@ -58,17 +60,19 @@ func (r *UpdateStockistRequest) ToDomain(id int64) *Stockist {
 }
 
 type StockistResponse struct {
-	ID           int64  `json:"id"`
-	OwnerName    string `json:"name"`
-	BusinessName string `json:"business_name"`
-	Email        string `json:"email"`
-	Phone        string `json:"phone"`
-	Country      string `json:"country"`
-	State        string `json:"state"`
-	City         string `json:"city"`
-	PinCode      int    `json:"pin_code"`
-	Address      string `json:"address"`
-	GSTNumber    string `json:"gst_number"`
+	ID           int64     `json:"id"`
+	OwnerName    string    `json:"name"`
+	BusinessName string    `json:"business_name"`
+	Email        string    `json:"email"`
+	Phone        string    `json:"phone"`
+	Country      string    `json:"country"`
+	State        string    `json:"state"`
+	City         string    `json:"city"`
+	PinCode      string    `json:"pin_code"`
+	Address      string    `json:"address"`
+	GSTNumber    string    `json:"gst_number"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 func NewStockistResponse(s *Stockist) *StockistResponse {
@@ -84,6 +88,8 @@ func NewStockistResponse(s *Stockist) *StockistResponse {
 		PinCode:      s.PinCode,
 		Address:      s.Address,
 		GSTNumber:    s.GSTNumber,
+		CreatedAt:    s.CreatedAt,
+		UpdatedAt:    s.UpdatedAt,
 	}
 }
 

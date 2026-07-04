@@ -6,8 +6,10 @@ import (
 	"fmt"
 )
 
-var ErrDuplicateEmail = errors.New("stockist with this email already exists")
-var ErrNotFound = errors.New("stockist not found")
+var (
+	ErrDuplicateEmail = errors.New("stockist with this email already exists")
+	ErrNotFound       = errors.New("stockist not found")
+)
 
 type PaginatedStockists struct {
 	Items      []*Stockist `json:"items"`
@@ -19,6 +21,7 @@ type PaginatedStockists struct {
 
 type Service interface {
 	CreateStockist(ctx context.Context, stockist *Stockist) error
+	GetStockistByID(ctx context.Context, id int64) (*Stockist, error)
 	GetStockistByEmail(ctx context.Context, email string) (*Stockist, error)
 	UpdateStockist(ctx context.Context, stockist *Stockist) error
 	DeleteStockist(ctx context.Context, id int64) error
@@ -46,6 +49,14 @@ func (s *service) CreateStockist(ctx context.Context, stockist *Stockist) error 
 		return fmt.Errorf("failed to create stockist: %w", err)
 	}
 	return nil
+}
+
+func (s *service) GetStockistByID(ctx context.Context, id int64) (*Stockist, error) {
+	stockist, err := s.repo.GetStockistByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("stockist not found: %w", err)
+	}
+	return stockist, nil
 }
 
 func (s *service) GetStockistByEmail(ctx context.Context, email string) (*Stockist, error) {
