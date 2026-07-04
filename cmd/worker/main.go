@@ -10,7 +10,9 @@ import (
 
 	"github.com/swaindhruti/pharmastock-backend/internal/config"
 	"github.com/swaindhruti/pharmastock-backend/internal/database"
+	"github.com/swaindhruti/pharmastock-backend/internal/inventory"
 	"github.com/swaindhruti/pharmastock-backend/internal/job"
+	"github.com/swaindhruti/pharmastock-backend/internal/medicine"
 )
 
 func main() {
@@ -28,7 +30,9 @@ func main() {
 	defer db.Close()
 
 	jobRepo := job.NewRepository(db.Pool)
-	jobProcessor := job.NewProcessor()
+	medicineRepo := medicine.NewRepository(db.Pool)
+	inventoryRepo := inventory.NewRepository(db.Pool)
+	jobProcessor := job.NewProcessor(medicineRepo, inventoryRepo)
 	jobService := job.NewService(jobRepo, jobProcessor)
 
 	sigChan := make(chan os.Signal, 1)

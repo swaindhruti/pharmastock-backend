@@ -16,6 +16,13 @@ type Config struct {
 	DBPassword string
 	DBName     string
 	DBSSLMode  string
+
+	UploadDir string
+
+	JWTSecret      string
+	AdminUsername  string
+	AdminPassword  string
+	AdminEmail     string
 }
 
 func getEnv(key, defaultValue string) string {
@@ -40,6 +47,11 @@ func LoadConfig() (*Config, error) {
 		DBPassword: getEnv("DB_PASSWORD", "postgres"),
 		DBName:     getEnv("DB_NAME", "pharmastock-db"),
 		DBSSLMode:  getEnv("DB_SSL_MODE", "disable"),
+		UploadDir:  getEnv("UPLOAD_DIR", "./uploads"),
+		JWTSecret:      getEnv("JWT_SECRET", "change-me-in-production"),
+		AdminUsername:  getEnv("ADMIN_USERNAME", "admin"),
+		AdminPassword:  getEnv("ADMIN_PASSWORD", "admin123"),
+		AdminEmail:     getEnv("ADMIN_EMAIL", "admin@pharmastock.com"),
 	}
 
 	return config, nil
