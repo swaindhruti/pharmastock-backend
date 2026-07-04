@@ -8,7 +8,8 @@ import (
 )
 
 type Repository interface {
-	BatchInsertMedicines(ctx context.Context, medicines []*Medicine) error
+	BatchInsert(ctx context.Context, medicines []*Medicine) error
+	GetMedicinesByNames(ctx context.Context, names []string) ([]*Medicine, error)
 	SearchMedicines(ctx context.Context, query string, limit, offset int) ([]*Medicine, error)
 }
 
@@ -20,7 +21,7 @@ func NewRepository(db *pgxpool.Pool) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) BatchInsertMedicines(ctx context.Context, medicines []*Medicine) error {
+func (r *repository) BatchInsert(ctx context.Context, medicines []*Medicine) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -37,6 +38,32 @@ func (r *repository) BatchInsertMedicines(ctx context.Context, medicines []*Medi
 	}
 
 	return tx.Commit(ctx)
+}
+
+func (r *repository) GetMedicinesByNames(ctx context.Context, names []string) ([]*Medicine, error) {
+	query := `SELECT id, name, created_at FROM medicines WHERE name = ANY($1)`
+
+	rows, err := r.db.Query(ctx, query, names)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get medicines by names: %w", err)
+	}
+	defer rows.Close()
+
+	var medicines []*Medicine
+	for rows.Next() {
+		medicine := &Medicine{}
+		err := rows.Scan(&medicine.ID, &medicine.Name, &medicine.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan medicine: %w", err)
+		}
+		medicines = append(medicines, medicine)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over rows: %w", err)
+	}
+
+	return medicines, nil
 }
 
 func (r *repository) SearchMedicines(ctx context.Context, query string, limit, offset int) ([]*Medicine, error) {
