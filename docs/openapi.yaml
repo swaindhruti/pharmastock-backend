@@ -1,0 +1,968 @@
+openapi: "3.0.3"
+info:
+  title: PharmaStock Backend API
+  description: |
+    B2B pharmaceutical stock management platform.
+    Stockists upload inventory files → system processes them into a searchable catalog.
+    Retailers discover stockists with the medicines they need.
+  version: "1.0.0"
+  contact:
+    name: PharmaStock Team
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        "200":
+          description: API and database are healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "503":
+          description: Database is down
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email or username
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Self-register as a retailer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRetailerRequest"
+      responses:
+        "201":
+          description: Retailer registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Duplicate email or username
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/admin/stockists:
+    post:
+      tags: [Auth]
+      summary: Admin creates a stockist user
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStockistUserRequest"
+      responses:
+        "201":
+          description: Stockist created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Duplicate email or username
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /stockists:
+    get:
+      tags: [Stockists]
+      summary: List stockists (paginated)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: Paginated stockist list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedStockistResponse"
+    post:
+      tags: [Stockists]
+      summary: Create a stockist
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStockistRequest"
+      responses:
+        "201":
+          description: Stockist created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockistResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Duplicate email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /stockists/{id}:
+    get:
+      tags: [Stockists]
+      summary: Get stockist by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/stockistId"
+      responses:
+        "200":
+          description: Stockist details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockistResponse"
+        "404":
+          description: Stockist not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags: [Stockists]
+      summary: Update a stockist
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/stockistId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStockistRequest"
+      responses:
+        "200":
+          description: Stockist updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockistResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Stockist not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags: [Stockists]
+      summary: Delete a stockist
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/stockistId"
+      responses:
+        "200":
+          description: Stockist deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Stockist not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /retailers:
+    get:
+      tags: [Retailers]
+      summary: List retailers (paginated)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: Paginated retailer list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedRetailerResponse"
+    post:
+      tags: [Retailers]
+      summary: Create a retailer (admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRetailerRequest"
+      responses:
+        "201":
+          description: Retailer created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetailerResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Duplicate email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /retailers/{email}:
+    get:
+      tags: [Retailers]
+      summary: Get retailer by email
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        "200":
+          description: Retailer details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetailerResponse"
+        "404":
+          description: Retailer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /retailers/{id}:
+    put:
+      tags: [Retailers]
+      summary: Update a retailer
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/retailerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRetailerRequest"
+      responses:
+        "200":
+          description: Retailer updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetailerResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Retailer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags: [Retailers]
+      summary: Delete a retailer
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/retailerId"
+      responses:
+        "200":
+          description: Retailer deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Retailer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /medicines:
+    get:
+      tags: [Medicines]
+      summary: Search medicines
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query (fuzzy match on medicine name)
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: Medicine list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MedicineList"
+        "400":
+          description: Search query is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /inventory/stockists:
+    get:
+      tags: [Inventory]
+      summary: Find stockists by medicine ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: medicine_id
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Stockists carrying the medicine
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockistsByMedicineResponse"
+        "400":
+          description: medicine_id is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /upload:
+    post:
+      tags: [Upload]
+      summary: Upload inventory file
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - stockist_id
+                - file
+              properties:
+                stockist_id:
+                  type: integer
+                  format: int64
+                  description: Stockist ID
+                file:
+                  type: string
+                  format: binary
+                  description: Inventory file (.csv or .pdf)
+      responses:
+        "201":
+          description: Upload accepted, job created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+        "400":
+          description: Invalid file type or missing fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from /auth/login
+
+  parameters:
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Items per page
+    stockistId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    retailerId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+  schemas:
+    # --- Response Envelope ---
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: string
+    DeleteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        data:
+          nullable: true
+
+    # --- Auth ---
+    LoginRequest:
+      type: object
+      required: [password]
+      properties:
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        password:
+          type: string
+          format: password
+          minLength: 8
+      oneOf:
+        - required: [email]
+        - required: [username]
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+            user_id:
+              type: integer
+              format: int64
+            role:
+              type: string
+              enum: [admin, stockist, retailer]
+            reference_id:
+              type: integer
+              format: int64
+
+    CreateStockistUserRequest:
+      type: object
+      required:
+        - name
+        - business_name
+        - email
+        - phone
+        - country
+        - state
+        - city
+        - pin_code
+        - address
+        - gst_number
+        - username
+        - password
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+        business_name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 15
+        country:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        pin_code:
+          type: string
+        address:
+          type: string
+          minLength: 10
+          maxLength: 200
+        gst_number:
+          type: string
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        password:
+          type: string
+          format: password
+          minLength: 8
+
+    RegisterRetailerRequest:
+      type: object
+      required:
+        - name
+        - business_name
+        - email
+        - phone
+        - country
+        - state
+        - city
+        - pin_code
+        - address
+        - gst_number
+        - username
+        - password
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+        business_name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 15
+        country:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        pin_code:
+          type: string
+        address:
+          type: string
+          minLength: 10
+          maxLength: 200
+        gst_number:
+          type: string
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        password:
+          type: string
+          format: password
+          minLength: 8
+
+    # --- Stockist ---
+    CreateStockistRequest:
+      type: object
+      required:
+        - name
+        - business_name
+        - email
+        - phone
+        - country
+        - state
+        - city
+        - pin_code
+        - address
+        - gst_number
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+        business_name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 15
+        country:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        pin_code:
+          type: string
+        address:
+          type: string
+          minLength: 10
+          maxLength: 200
+        gst_number:
+          type: string
+
+    UpdateStockistRequest:
+      $ref: "#/components/schemas/CreateStockistRequest"
+
+    StockistResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        business_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        country:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        pin_code:
+          type: string
+        address:
+          type: string
+        gst_number:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PaginatedStockistResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/StockistResponse"
+            total:
+              type: integer
+              format: int64
+            page:
+              type: integer
+            limit:
+              type: integer
+            total_pages:
+              type: integer
+
+    # --- Retailer ---
+    CreateRetailerRequest:
+      type: object
+      required:
+        - name
+        - business_name
+        - email
+        - phone
+        - country
+        - state
+        - city
+        - pin_code
+        - address
+        - gst_number
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+        business_name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 15
+        country:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        pin_code:
+          type: string
+        address:
+          type: string
+          minLength: 10
+          maxLength: 200
+        gst_number:
+          type: string
+
+    UpdateRetailerRequest:
+      $ref: "#/components/schemas/CreateRetailerRequest"
+
+    RetailerResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        business_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        country:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        pin_code:
+          type: string
+        address:
+          type: string
+        gst_number:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PaginatedRetailerResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/RetailerResponse"
+            total:
+              type: integer
+              format: int64
+            page:
+              type: integer
+            limit:
+              type: integer
+            total_pages:
+              type: integer
+
+    # --- Medicine ---
+    Medicine:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    MedicineList:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Medicine"
+
+    # --- Inventory ---
+    StockistInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        business_name:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+
+    StockistsByMedicineResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          properties:
+            medicine_id:
+              type: integer
+              format: int64
+            stockists:
+              type: array
+              items:
+                $ref: "#/components/schemas/StockistInfo"
+
+    # --- Upload ---
+    UploadResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          properties:
+            job_id:
+              type: integer
+              format: int64
