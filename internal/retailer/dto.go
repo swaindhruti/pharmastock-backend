@@ -10,7 +10,7 @@ type CreateRetailerRequest struct {
 	Country      string `json:"country" validate:"required"`
 	State        string `json:"state" validate:"required"`
 	City         string `json:"city" validate:"required"`
-	PinCode      int    `json:"pin_code" validate:"required,numeric"`
+	PinCode      string `json:"pin_code" validate:"required"`
 	Address      string `json:"address" validate:"required,min=10,max=200"`
 	GSTNumber    string `json:"gst_number" validate:"required"`
 }
@@ -38,7 +38,7 @@ type UpdateRetailerRequest struct {
 	Country      string `json:"country" validate:"required"`
 	State        string `json:"state" validate:"required"`
 	City         string `json:"city" validate:"required"`
-	PinCode      int    `json:"pin_code" validate:"required,numeric"`
+	PinCode      string `json:"pin_code" validate:"required"`
 	Address      string `json:"address" validate:"required,min=10,max=200"`
 	GSTNumber    string `json:"gst_number" validate:"required"`
 }
@@ -68,7 +68,7 @@ type RetailerResponse struct {
 	Country      string    `json:"country"`
 	State        string    `json:"state"`
 	City         string    `json:"city"`
-	PinCode      int       `json:"pin_code"`
+	PinCode      string    `json:"pin_code"`
 	Address      string    `json:"address"`
 	GSTNumber    string    `json:"gst_number"`
 	CreatedAt    time.Time `json:"created_at"`
