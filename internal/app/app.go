@@ -7,13 +7,18 @@ import (
 	"github.com/labstack/echo/v5"
 	"go.uber.org/zap"
 
+	"github.com/swaindhruti/pharmastock-backend/internal/auth"
 	"github.com/swaindhruti/pharmastock-backend/internal/config"
 	"github.com/swaindhruti/pharmastock-backend/internal/database"
 	"github.com/swaindhruti/pharmastock-backend/internal/health"
+	"github.com/swaindhruti/pharmastock-backend/internal/inventory"
+	"github.com/swaindhruti/pharmastock-backend/internal/job"
+	"github.com/swaindhruti/pharmastock-backend/internal/medicine"
 	"github.com/swaindhruti/pharmastock-backend/internal/middleware"
 	"github.com/swaindhruti/pharmastock-backend/internal/retailer"
 	"github.com/swaindhruti/pharmastock-backend/internal/router"
 	"github.com/swaindhruti/pharmastock-backend/internal/stockist"
+	"github.com/swaindhruti/pharmastock-backend/internal/upload"
 )
 
 type App struct {
@@ -49,16 +54,43 @@ func NewApp() (*App, error) {
 
 	e.Use(middleware.RequestID(), middleware.Logger(logger), middleware.Recovery())
 
-	stockistHandler := stockist.NewModule(db.Pool)
-	retailerHandler := retailer.NewModule(db.Pool)
+	// Stockist module
+	stockistModule := stockist.NewModule(db.Pool)
+
+	// Retailer module
+	retailerModule := retailer.NewModule(db.Pool)
+
+	// Medicine module
+	medicineHandler := medicine.NewModule(db.Pool)
+
+	// Inventory module
+	inventoryHandler := inventory.NewModule(db.Pool)
+
+	// Auth module
+	authHandler := auth.NewModule(db.Pool, cfg.JWTSecret, stockistModule.Service, retailerModule.Service)
+
+	// Upload module
+	jobRepo := job.NewRepository(db.Pool)
+	jobSvc := job.NewService(jobRepo, &noopProcessor{})
+	uploadSvc := upload.NewService(jobSvc, cfg.UploadDir)
+	uploadHandler := upload.NewHandler(uploadSvc)
 
 	handlers := &router.Handlers{
-		Health:   health.NewHandler(db),
-		Stockist: stockistHandler,
-		Retailer: retailerHandler,
+		Auth:      authHandler,
+		Health:    health.NewHandler(db),
+		Stockist:  stockistModule.Handler,
+		Retailer:  retailerModule.Handler,
+		Medicine:  medicineHandler,
+		Inventory: inventoryHandler,
+		Upload:    uploadHandler,
 	}
 
-	router.RegisterRoutes(e, handlers)
+	router.RegisterRoutes(e, handlers, cfg.JWTSecret)
+
+	// Seed admin user from env
+	if err := authHandler.SeedAdmin(context.Background(), cfg.AdminUsername, cfg.AdminPassword, cfg.AdminEmail); err != nil {
+		logger.Warn("failed to seed admin user", zap.Error(err))
+	}
 
 	return &App{
 		Config:   cfg,
@@ -83,4 +115,10 @@ func (a *App) Start(ctx context.Context) error {
 func (a *App) Shutdown() {
 	a.Logger.Sync()
 	a.Database.Close()
+}
+
+type noopProcessor struct{}
+
+func (n *noopProcessor) Process(_ context.Context, _ *job.Job) error {
+	return nil
 }
