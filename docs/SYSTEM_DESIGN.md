@@ -46,15 +46,16 @@ internal/
 ├── retailer/    Pharmacy CRUD
 ├── medicine/    Global medicine catalog + file parsers
 ├── inventory/   Stockist-medicine join table
-├── job/         Background job processing
+├── job/         Background job processing (incl. ResetStaleJobs)
 ├── upload/      File upload handler + service
+├── ui/          Browser testing interface (HTMX + Alpine.js, Go templates)
 ├── health/      Health check endpoint
 ├── middleware/  Global middleware pipeline
-├── router/      Route registration hub
+├── router/      API route registration hub
 ├── common/      Shared response helpers, sentinel errors
 ├── config/      Env-based configuration
 ├── database/    PostgreSQL connection pool
-└── app/         DI wiring, bootstrap
+└── app/         DI wiring, bootstrap, Renderer registration
 ```
 
 ---
@@ -74,7 +75,8 @@ Upload Service → saves file to disk → creates Job (status: pending)
   │
   ▼ (async)
 Worker (polls every 10s)
-  │ fetches "pending" jobs (max 5)
+  │ 1. ResetStaleJobs (resets jobs stuck in "processing" >5min)
+  │ 2. fetches "pending" jobs (max 5)
   ▼
 Job Processor
   │ 1. Parse file (CSV or PDF)
@@ -116,7 +118,7 @@ HTTP Request
 Middleware: RequestID → Logger → Recovery
     │
     ▼
-Group Middleware: AuthRequired → RequireRole (per group)
+Group Middleware: AuthRequired → RequireRole (per group) [API only]
     │
     ▼
 Handler (bind DTO, manual validate, call service)
@@ -132,6 +134,27 @@ PostgreSQL
     │
     ▼
 Response ← common.APISuccessResponse / common.APIErrorResponse
+```
+
+### UI Request Flow (Browser)
+
+```
+Browser →  / (root routes)
+    │
+    ▼
+Middleware: RequestID → Logger → Recovery
+    │
+    ▼
+UI Handler → calls internal services → renders Go templates
+    │
+    ▼
+TemplateRenderer.Render (per-page clone)
+    │
+    ▼
+HTML response with HTMX + Alpine.js
+    │
+    ▼
+HTMX makes AJAX calls → partial template renders (lists, forms)
 ```
 
 ---
@@ -153,6 +176,8 @@ Response ← common.APISuccessResponse / common.APIErrorResponse
 | **Polling-based worker** | Simple, no external queue dependency; scales to moderate load |
 | **Local file storage** | Files saved to `./uploads/`; cloud storage migration when scaling |
 | **bcrypt cost 10** | Default cost — balances security and performance |
+| **Per-page template clones** | Prevents `{{define "content"}}` collisions across page templates |
+| **HTMX + Alpine.js UI** | Server-rendered HTML with minimal client JS; no SPA framework needed |
 
 ---
 

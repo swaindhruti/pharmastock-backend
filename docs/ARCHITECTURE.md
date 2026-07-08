@@ -34,7 +34,7 @@ pharmastock-backend/
 │   │   ├── handler.go            # Login, RegisterRetailer, AdminCreateStockist
 │   │   ├── middleware.go         # AuthRequired, RequireRole, context helpers
 │   │   ├── routes.go             # /auth/* route registration
-│   │   └── module.go             # DI wiring → returns *Handler
+│   │   └── module.go             # DI wiring → returns Module{Handler, Service}
 │   │
 │   ├── stockist/                 # Distributor module
 │   │   ├── model.go              # Domain model
@@ -63,7 +63,7 @@ pharmastock-backend/
 │   │   ├── service.go            # Search, batch seed logic
 │   │   ├── handler.go            # GET /medicines?q=...
 │   │   ├── routes.go
-│   │   └── module.go
+│   │   └── module.go             # Returns Module{Handler, Service}
 │   │
 │   ├── inventory/                # Stockist-medicine join
 │   │   ├── model.go              # Inventory (stockist_id, medicine_id, created_at)
@@ -71,18 +71,34 @@ pharmastock-backend/
 │   │   ├── service.go
 │   │   ├── handler.go            # GET /inventory/stockists?medicine_id=X
 │   │   ├── routes.go
-│   │   └── module.go
+│   │   └── module.go             # Returns Module{Handler, Service}
 │   │
 │   ├── job/                      # Background job processing
 │   │   ├── model.go              # Job with status enum
-│   │   ├── repository.go         # CreateJob, FetchPendingJobs, UpdateJobStatus
-│   │   ├── service.go            # CreateJob, ProcessPendingJobs
+│   │   ├── repository.go         # CreateJob, FetchPendingJobs, UpdateJobStatus, ResetStaleJobs
+│   │   ├── service.go            # CreateJob, ProcessPendingJobs (resets stale jobs first)
 │   │   └── processor.go          # Parse file → seed medicines → link inventory
 │   │
 │   ├── upload/                   # File upload
 │   │   ├── handler.go            # POST /upload (multipart)
 │   │   ├── service.go            # Validate file type, save to disk, create job
 │   │   └── routes.go
+│   │
+│   ├── ui/                       # Browser testing interface (HTMX + Alpine.js)
+│   │   ├── handler.go            # Page renderers, form handlers for all CRUD
+│   │   ├── renderer.go           # Per-page isolated template engine (clones)
+│   │   ├── module.go             # DI wiring → returns Module{Handler, Renderer}
+│   │   ├── routes.go             # Root-level routes (/, /login, /stockists, …)
+│   │   └── templates/
+│   │       ├── layout.gohtml     # HTML shell with nav, Alpine.js, HTMX
+│   │       ├── partials.gohtml   # Shared partials (lists, forms)
+│   │       ├── login.gohtml
+│   │       ├── dashboard.gohtml
+│   │       ├── stockists.gohtml
+│   │       ├── retailers.gohtml
+│   │       ├── medicines.gohtml
+│   │       ├── inventory.gohtml
+│   │       └── upload.gohtml
 │   │
 │   └── router/router.go          # Route registration hub, middleware per group
 │
@@ -113,10 +129,10 @@ module/
 ├── handler.go      # HTTP handler methods
 ├── routes.go       # Route registration on an echo.Group
 ├── validator.go    # Shared validator instance (if needed)
-└── module.go       # DI wiring → returns *Handler or *Module{Handler, Service}
+└── module.go       # DI wiring → returns Module{Handler, Service}
 ```
 
-Modules that expose a `Service` for other modules (e.g., auth needs `stockist.Service` and `retailer.Service`) return a `Module` struct:
+All modules return a `Module` struct:
 
 ```go
 type Module struct {
@@ -125,7 +141,14 @@ type Module struct {
 }
 ```
 
-Modules that are leaf modules (no dependents) return `*Handler` directly.
+The UI module is an exception — it returns:
+
+```go
+type Module struct {
+    Handler  *Handler          # Page/form HTTP handlers
+    Renderer *TemplateRenderer # Echo v5 Renderer (registered as e.Renderer)
+}
+```
 
 ---
 
@@ -143,7 +166,7 @@ RequestID (outermost) → Logger → Recovery
 | **Logger** | 2nd | Logs method, path, status, latency, client IP, user-agent via Zap |
 | **Recovery** | 3rd | Catches panics, returns 500 instead of crashing |
 
-### Per-Group Middleware (applied to route groups)
+### Per-Group Middleware (applied to API route groups)
 
 | Group | Middleware |
 |---|---|
@@ -156,6 +179,31 @@ RequestID (outermost) → Logger → Recovery
 | `/api/v1/stockists` | `AuthRequired` + `RequireRole("admin")` |
 | `/api/v1/retailers` | `AuthRequired` + `RequireRole("admin")` |
 | `/api/v1/upload` | `AuthRequired` + `RequireRole("stockist")` |
+
+### UI Routes (root-level, browser-facing)
+
+All UI routes are **public** (no auth middleware). The login form stores the JWT in `localStorage` for subsequent API calls via HTMX. Route groups use the same handlers as the API module where applicable.
+
+---
+
+## Template Rendering
+
+The UI module uses Go's `html/template` with **per-page template isolation** to avoid name collisions:
+
+```
+Shared Base (layout + partials)
+  ├── layout.gohtml         → {{define "layout"}} ... {{block "content" .}}{{end}} ... {{end}}
+  └── partials.gohtml       → {{define "stockists_list"}} ... , {{define "stockist_form"}} ...
+
+Per-Page Clone (shared + page file)
+  ├── login.gohtml          → cloned from base, page's {{define "content"}} isolated
+  ├── dashboard.gohtml
+  ├── stockists.gohtml      → references {{template "stockists_list" .}} from partials
+  └── ...
+```
+
+- **Page requests** → execute `"layout"` from the page's clone (finds its own `"content"`)
+- **HTMX partial requests** → execute the named partial from the shared base set
 
 ---
 
@@ -189,7 +237,7 @@ Claims are extracted in `AuthRequired` middleware and set in `echo.Context`:
 
 | User Type | Created By | Endpoint |
 |---|---|---|
-| **Admin** | Seed on startup | `AUTH_ADMIN_*` env vars |
+| **Admin** | Seed on startup | `AUTH_ADMIN_*` env vars (uses `username` OR `email`) |
 | **Stockist** | Admin | `POST /auth/admin/stockists` |
 | **Retailer** | Self-registration | `POST /auth/register` |
 
@@ -226,8 +274,9 @@ pending ──► processing ──► completed
 
 ### Processing Cycle
 
-1. Fetch up to 5 `pending` jobs ordered by `created_at ASC`
-2. For each job:
+1. `ResetStaleJobs` — jobs stuck in `processing` for >5 minutes are reset back to `pending`
+2. Fetch up to 5 `pending` jobs ordered by `created_at ASC`
+3. For each job:
    - Mark as `processing` (set `started_at`)
    - Parse file based on extension (`.csv` → CSV parser, `.pdf` → PDF parser)
    - `BatchInsert` all medicine names from file (ON CONFLICT DO NOTHING)
@@ -331,3 +380,4 @@ On SIGINT/SIGTERM:
 - **ON CONFLICT DO NOTHING** — idempotent, no error handling needed for duplicates
 - **Polling interval** — 10s is tunable; suitable for moderate upload volumes
 - **No N+1 queries** — all lookups fetch complete result sets
+- **Template isolation** — per-page template clones prevent `{{define}}` name collisions without runtime overhead
