@@ -1,0 +1,32 @@
+{{template "layout" .}}
+{{define "content"}}
+<div class="card" style="max-width: 420px; margin: 2rem auto;">
+  <h1>Login</h1>
+  {{if .error}}<div class="alert alert-error">{{.error}}</div>{{end}}
+
+  {{if .loggedIn}}
+    <div class="alert alert-success">Authenticated as <strong>{{.role}}</strong> (ID: {{.user_id}})</div>
+    <div class="token-box">{{.token}}</div>
+    <div class="flex gap-1 mt-2">
+      <button class="btn btn-primary btn-sm" @click="setToken('{{.token}}')">Save Token</button>
+      <button class="btn btn-danger btn-sm" @click="clearToken()">Clear Token</button>
+    </div>
+  {{else}}
+    <form method="POST" action="/login">
+      <div class="mb-2">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" placeholder="you@example.com">
+      </div>
+      <div class="mb-2">
+        <label for="username">Username</label>
+        <input id="username" name="username" placeholder="(or) username">
+      </div>
+      <div class="mb-2">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Login</button>
+    </form>
+  {{end}}
+</div>
+{{end}}

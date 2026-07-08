@@ -10,6 +10,7 @@ import (
 type Repository interface {
 	CreateRetailer(ctx context.Context, retailer *Retailer) error
 	GetRetailerByEmail(ctx context.Context, email string) (*Retailer, error)
+	GetRetailerByID(ctx context.Context, id int64) (*Retailer, error)
 	UpdateRetailer(ctx context.Context, retailer *Retailer) error
 	DeleteRetailer(ctx context.Context, id int64) error
 	ListRetailers(ctx context.Context, limit, offset int) ([]*Retailer, error)
@@ -49,6 +50,24 @@ func (r *repository) GetRetailerByEmail(ctx context.Context, email string) (*Ret
 			  FROM retailers WHERE email = $1`
 
 	row := r.db.QueryRow(ctx, query, email)
+
+	retailer := &Retailer{}
+	err := row.Scan(&retailer.RetailerID, &retailer.OwnerName, &retailer.BusinessName, &retailer.Email,
+		&retailer.Phone, &retailer.Country, &retailer.State, &retailer.City, &retailer.PinCode,
+		&retailer.Address, &retailer.GSTNumber, &retailer.CreatedAt, &retailer.UpdatedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("retailer not found: %w", ErrNotFound)
+	}
+
+	return retailer, nil
+}
+
+func (r *repository) GetRetailerByID(ctx context.Context, id int64) (*Retailer, error) {
+	query := `SELECT id, owner_name, business_name, email, phone, country, state, city, pin_code, address, gst_number, created_at, updated_at
+			  FROM retailers WHERE id = $1`
+
+	row := r.db.QueryRow(ctx, query, id)
 
 	retailer := &Retailer{}
 	err := row.Scan(&retailer.RetailerID, &retailer.OwnerName, &retailer.BusinessName, &retailer.Email,

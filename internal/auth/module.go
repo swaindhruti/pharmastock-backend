@@ -6,9 +6,14 @@ import (
 	"github.com/swaindhruti/pharmastock-backend/internal/stockist"
 )
 
-func NewModule(db *pgxpool.Pool, jwtSecret string, stockistSvc stockist.Service, retailerSvc retailer.Service) *Handler {
+type Module struct {
+	Handler *Handler
+	Service Service
+}
+
+func NewModule(db *pgxpool.Pool, jwtSecret string, stockistSvc stockist.Service, retailerSvc retailer.Service) *Module {
 	repo := NewRepository(db)
 	svc := NewService(repo, jwtSecret)
 	handler := NewHandler(svc, stockistSvc, retailerSvc)
-	return handler
+	return &Module{Handler: handler, Service: svc}
 }

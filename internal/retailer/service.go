@@ -20,6 +20,7 @@ type PaginatedRetailers struct {
 type Service interface {
 	CreateRetailer(ctx context.Context, retailer *Retailer) error
 	GetRetailerByEmail(ctx context.Context, email string) (*Retailer, error)
+	GetRetailerByID(ctx context.Context, id int64) (*Retailer, error)
 	UpdateRetailer(ctx context.Context, retailer *Retailer) error
 	DeleteRetailer(ctx context.Context, id int64) error
 	ListRetailers(ctx context.Context, page, limit int) (*PaginatedRetailers, error)
@@ -50,6 +51,14 @@ func (s *service) CreateRetailer(ctx context.Context, retailer *Retailer) error 
 
 func (s *service) GetRetailerByEmail(ctx context.Context, email string) (*Retailer, error) {
 	retailer, err := s.repo.GetRetailerByEmail(ctx, email)
+	if err != nil {
+		return nil, fmt.Errorf("retailer not found: %w", err)
+	}
+	return retailer, nil
+}
+
+func (s *service) GetRetailerByID(ctx context.Context, id int64) (*Retailer, error) {
+	retailer, err := s.repo.GetRetailerByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("retailer not found: %w", err)
 	}

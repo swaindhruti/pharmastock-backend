@@ -18,6 +18,7 @@ import (
 	"github.com/swaindhruti/pharmastock-backend/internal/retailer"
 	"github.com/swaindhruti/pharmastock-backend/internal/router"
 	"github.com/swaindhruti/pharmastock-backend/internal/stockist"
+	"github.com/swaindhruti/pharmastock-backend/internal/ui"
 	"github.com/swaindhruti/pharmastock-backend/internal/upload"
 )
 
@@ -61,13 +62,13 @@ func NewApp() (*App, error) {
 	retailerModule := retailer.NewModule(db.Pool)
 
 	// Medicine module
-	medicineHandler := medicine.NewModule(db.Pool)
+	medicineModule := medicine.NewModule(db.Pool)
 
 	// Inventory module
-	inventoryHandler := inventory.NewModule(db.Pool)
+	inventoryModule := inventory.NewModule(db.Pool)
 
 	// Auth module
-	authHandler := auth.NewModule(db.Pool, cfg.JWTSecret, stockistModule.Service, retailerModule.Service)
+	authModule := auth.NewModule(db.Pool, cfg.JWTSecret, stockistModule.Service, retailerModule.Service)
 
 	// Upload module
 	jobRepo := job.NewRepository(db.Pool)
@@ -76,19 +77,30 @@ func NewApp() (*App, error) {
 	uploadHandler := upload.NewHandler(uploadSvc)
 
 	handlers := &router.Handlers{
-		Auth:      authHandler,
+		Auth:      authModule.Handler,
 		Health:    health.NewHandler(db),
 		Stockist:  stockistModule.Handler,
 		Retailer:  retailerModule.Handler,
-		Medicine:  medicineHandler,
-		Inventory: inventoryHandler,
+		Medicine:  medicineModule.Handler,
+		Inventory: inventoryModule.Handler,
 		Upload:    uploadHandler,
 	}
 
 	router.RegisterRoutes(e, handlers, cfg.JWTSecret)
 
+	// UI module — testing UI with HTMX + Alpine
+	uiModule := ui.NewModule(
+		stockistModule.Service,
+		retailerModule.Service,
+		medicineModule.Service,
+		inventoryModule.Service,
+		authModule.Service,
+		uploadSvc,
+	)
+	ui.RegisterRoutes(e, uiModule.Handler)
+
 	// Seed admin user from env
-	if err := authHandler.SeedAdmin(context.Background(), cfg.AdminUsername, cfg.AdminPassword, cfg.AdminEmail); err != nil {
+	if err := authModule.Handler.SeedAdmin(context.Background(), cfg.AdminUsername, cfg.AdminPassword, cfg.AdminEmail); err != nil {
 		logger.Warn("failed to seed admin user", zap.Error(err))
 	}
 

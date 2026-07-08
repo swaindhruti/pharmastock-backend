@@ -1,0 +1,24 @@
+{{template "layout" .}}
+{{define "content"}}
+<h1>Dashboard</h1>
+<div class="grid-3">
+  <div class="card stat">
+    <div class="stat-value">{{.stockistCount}}</div>
+    <div class="stat-label">Stockists</div>
+    <a href="/stockists" class="btn btn-primary btn-sm mt-2">Manage</a>
+  </div>
+  <div class="card stat">
+    <div class="stat-value">{{.retailerCount}}</div>
+    <div class="stat-label">Retailers</div>
+    <a href="/retailers" class="btn btn-primary btn-sm mt-2">Manage</a>
+  </div>
+  <div class="card stat">
+    <div class="stat-value">⬆</div>
+    <div class="stat-label">Quick Actions</div>
+    <div class="flex gap-1 mt-2" style="justify-content:center">
+      <a href="/upload" class="btn btn-primary btn-sm">Upload</a>
+      <a href="/medicines" class="btn btn-primary btn-sm">Search</a>
+    </div>
+  </div>
+</div>
+{{end}}

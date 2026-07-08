@@ -2,9 +2,14 @@ package medicine
 
 import "github.com/jackc/pgx/v5/pgxpool"
 
-func NewModule(db *pgxpool.Pool) *Handler {
+type Module struct {
+	Handler *Handler
+	Service Service
+}
+
+func NewModule(db *pgxpool.Pool) *Module {
 	repo := NewRepository(db)
 	svc := NewService(repo)
 	handler := NewHandler(svc)
-	return handler
+	return &Module{Handler: handler, Service: svc}
 }

@@ -1,0 +1,39 @@
+{{template "layout" .}}
+{{define "content"}}
+<h1>Inventory Lookup</h1>
+<div class="card">
+  <form hx-get="/inventory" hx-target="#results" hx-swap="innerHTML">
+    <label for="medicine_id">Medicine ID</label>
+    <input id="medicine_id" name="medicine_id" type="number" value="{{.medicineID}}" placeholder="Enter medicine ID" autofocus>
+    <button type="submit" class="btn btn-primary mt-2">Search</button>
+  </form>
+</div>
+
+<div id="results">{{template "inventory_results" .}}</div>
+{{end}}
+
+{{define "inventory_results"}}
+{{if gt .medicineID 0}}
+  <div class="card">
+    <p style="color:#64748b;font-size:0.85rem;margin-bottom:0.75rem;">Stockists carrying medicine #{{.medicineID}}</p>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Name</th><th>Business</th><th>City</th><th>State</th></tr>
+      </thead>
+      <tbody>
+        {{range .stockists}}
+        <tr>
+          <td>{{.StockistID}}</td>
+          <td>{{.OwnerName}}</td>
+          <td>{{.BusinessName}}</td>
+          <td>{{.City}}</td>
+          <td>{{.State}}</td>
+        </tr>
+        {{else}}
+        <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:2rem;">No stockists found for this medicine</td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+{{end}}
+{{end}}

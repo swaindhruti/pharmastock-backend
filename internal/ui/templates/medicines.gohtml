@@ -1,0 +1,36 @@
+{{template "layout" .}}
+{{define "content"}}
+<h1>Medicine Search</h1>
+<div class="card">
+  <form hx-get="/medicines" hx-target="#results" hx-trigger="keyup delay:300ms" hx-swap="innerHTML">
+    <label for="q">Search by name</label>
+    <input id="q" name="q" type="text" value="{{.query}}" placeholder="Type to search medicines..." autofocus>
+  </form>
+</div>
+
+<div id="results">{{template "medicines_results" .}}</div>
+{{end}}
+
+{{define "medicines_results"}}
+{{if .query}}
+  <div class="card">
+    <p style="color:#64748b;font-size:0.85rem;margin-bottom:0.75rem;">Results for "{{.query}}"</p>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Name</th><th>Created</th></tr>
+      </thead>
+      <tbody>
+        {{range .items}}
+        <tr>
+          <td>{{.ID}}</td>
+          <td>{{.Name}}</td>
+          <td>{{.CreatedAt.Format "Jan 02, 2006"}}</td>
+        </tr>
+        {{else}}
+        <tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:2rem;">No medicines found</td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+{{end}}
+{{end}}
