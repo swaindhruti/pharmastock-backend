@@ -1,6 +1,11 @@
 package job
 
-import "context"
+import (
+	"context"
+	"time"
+)
+
+const defaultStaleAge = 5 * time.Minute
 
 type Service interface {
 	CreateJob(ctx context.Context, stockistID int64, filePath string) (int64, error)
@@ -21,6 +26,15 @@ func (s *service) CreateJob(ctx context.Context, stockistID int64, filePath stri
 }
 
 func (s *service) ProcessPendingJobs(ctx context.Context, limit int) error {
+	count, err := s.repo.ResetStaleJobs(ctx, defaultStaleAge)
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		// Logged at caller
+		_ = count
+	}
+
 	jobs, err := s.repo.GetPendingJobs(ctx, limit)
 	if err != nil {
 		return err

@@ -3,6 +3,7 @@ package job
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -13,6 +14,7 @@ type Repository interface {
 	MarkJobProcessing(ctx context.Context, jobID int64) error
 	MarkJobCompleted(ctx context.Context, jobID int64) error
 	MarkJobFailed(ctx context.Context, jobID int64, errorMessage string) error
+	ResetStaleJobs(ctx context.Context, staleAge time.Duration) (int64, error)
 }
 
 type repository struct {
@@ -116,4 +118,16 @@ func (r *repository) MarkJobFailed(ctx context.Context, jobID int64, errorMessag
 	}
 
 	return nil
+}
+
+func (r *repository) ResetStaleJobs(ctx context.Context, staleAge time.Duration) (int64, error) {
+	query := `UPDATE jobs SET job_status = 'pending', started_at = NULL
+			  WHERE job_status = 'processing' AND started_at < NOW() - $1::interval`
+
+	result, err := r.db.Exec(ctx, query, fmt.Sprintf("%.0f seconds", staleAge.Seconds()))
+	if err != nil {
+		return 0, fmt.Errorf("failed to reset stale jobs: %w", err)
+	}
+
+	return result.RowsAffected(), nil
 }
