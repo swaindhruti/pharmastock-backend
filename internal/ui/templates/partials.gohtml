@@ -1,0 +1,173 @@
+{{define "stockist_form"}}
+<div class="card" x-data="{ open: true }" x-show="open">
+  <div class="flex-between mb-2">
+    <h3>{{if .isEdit}}Edit{{else}}New{{end}} Stockist</h3>
+    <button @click="open = false" class="btn btn-sm btn-danger">✕</button>
+  </div>
+  <form hx-post="{{if .isEdit}}/stockists/{{.stockist.StockistID}}/update{{else}}/stockists{{end}}"
+        hx-target="#stockist-list" hx-swap="outerHTML"
+        @submit="setTimeout(() => open=false, 100)">
+    <div class="grid-2">
+      <div><label>Name</label><input name="name" value="{{if .stockist}}{{.stockist.OwnerName}}{{end}}" required></div>
+      <div><label>Business Name</label><input name="business_name" value="{{if .stockist}}{{.stockist.BusinessName}}{{end}}" required></div>
+      <div><label>Email</label><input name="email" type="email" value="{{if .stockist}}{{.stockist.Email}}{{end}}" required></div>
+      <div><label>Phone</label><input name="phone" value="{{if .stockist}}{{.stockist.Phone}}{{end}}" required></div>
+      <div><label>Country</label><input name="country" value="{{if .stockist}}{{.stockist.Country}}{{end}}" required></div>
+      <div><label>State</label><input name="state" value="{{if .stockist}}{{.stockist.State}}{{end}}" required></div>
+      <div><label>City</label><input name="city" value="{{if .stockist}}{{.stockist.City}}{{end}}" required></div>
+      <div><label>Pin Code</label><input name="pin_code" value="{{if .stockist}}{{.stockist.PinCode}}{{end}}" required></div>
+      <div><label>Address</label><input name="address" value="{{if .stockist}}{{.stockist.Address}}{{end}}" required></div>
+      <div><label>GST Number</label><input name="gst_number" value="{{if .stockist}}{{.stockist.GSTNumber}}{{end}}" required></div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-2">{{if .isEdit}}Update{{else}}Create{{end}}</button>
+  </form>
+</div>
+{{end}}
+
+{{define "stockists_list"}}
+<table>
+  <thead>
+    <tr>
+      <th>ID</th><th>Name</th><th>Business</th><th>Email</th><th>Phone</th><th>City</th><th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .items}}
+    <tr>
+      <td>{{.StockistID}}</td>
+      <td>{{.OwnerName}}</td>
+      <td>{{.BusinessName}}</td>
+      <td>{{.Email}}</td>
+      <td>{{.Phone}}</td>
+      <td>{{.City}}</td>
+      <td>
+        <button class="btn btn-primary btn-sm" hx-get="/stockists/{{.StockistID}}/edit" hx-target="#form-area" hx-swap="innerHTML">Edit</button>
+        <button class="btn btn-danger btn-sm" hx-delete="/stockists/{{.StockistID}}" hx-target="#stockist-list" hx-swap="outerHTML" @click="if(!confirm('Delete this stockist?')) throw new Error()">Delete</button>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:2rem;">No stockists yet</td></tr>
+    {{end}}
+  </tbody>
+</table>
+
+{{if gt .pages 1}}
+<div class="pagination">
+  {{range $i := seq 1 .pages}}
+  <a href="/stockists?page={{$i}}" hx-get="/stockists?page={{$i}}" hx-target="#stockist-list" hx-swap="outerHTML" class="{{if eq $i $.page}}active{{end}}">{{$i}}</a>
+  {{end}}
+</div>
+{{end}}
+{{end}}
+
+{{define "retailer_form"}}
+<div class="card" x-data="{ open: true }" x-show="open">
+  <div class="flex-between mb-2">
+    <h3>{{if .isEdit}}Edit{{else}}New{{end}} Retailer</h3>
+    <button @click="open = false" class="btn btn-sm btn-danger">✕</button>
+  </div>
+  <form hx-post="{{if .isEdit}}/retailers/{{.retailer.RetailerID}}/update{{else}}/retailers{{end}}"
+        hx-target="#retailer-list" hx-swap="outerHTML"
+        @submit="setTimeout(() => open=false, 100)">
+    <div class="grid-2">
+      <div><label>Name</label><input name="name" value="{{if .retailer}}{{.retailer.OwnerName}}{{end}}" required></div>
+      <div><label>Business Name</label><input name="business_name" value="{{if .retailer}}{{.retailer.BusinessName}}{{end}}" required></div>
+      <div><label>Email</label><input name="email" type="email" value="{{if .retailer}}{{.retailer.Email}}{{end}}" required></div>
+      <div><label>Phone</label><input name="phone" value="{{if .retailer}}{{.retailer.Phone}}{{end}}" required></div>
+      <div><label>Country</label><input name="country" value="{{if .retailer}}{{.retailer.Country}}{{end}}" required></div>
+      <div><label>State</label><input name="state" value="{{if .retailer}}{{.retailer.State}}{{end}}" required></div>
+      <div><label>City</label><input name="city" value="{{if .retailer}}{{.retailer.City}}{{end}}" required></div>
+      <div><label>Pin Code</label><input name="pin_code" value="{{if .retailer}}{{.retailer.PinCode}}{{end}}" required></div>
+      <div><label>Address</label><input name="address" value="{{if .retailer}}{{.retailer.Address}}{{end}}" required></div>
+      <div><label>GST Number</label><input name="gst_number" value="{{if .retailer}}{{.retailer.GSTNumber}}{{end}}" required></div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-2">{{if .isEdit}}Update{{else}}Create{{end}}</button>
+  </form>
+</div>
+{{end}}
+
+{{define "retailers_list"}}
+<table>
+  <thead>
+    <tr>
+      <th>ID</th><th>Name</th><th>Business</th><th>Email</th><th>Phone</th><th>City</th><th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .items}}
+    <tr>
+      <td>{{.RetailerID}}</td>
+      <td>{{.OwnerName}}</td>
+      <td>{{.BusinessName}}</td>
+      <td>{{.Email}}</td>
+      <td>{{.Phone}}</td>
+      <td>{{.City}}</td>
+      <td>
+        <button class="btn btn-primary btn-sm" hx-get="/retailers/{{.RetailerID}}/edit" hx-target="#form-area" hx-swap="innerHTML">Edit</button>
+        <button class="btn btn-danger btn-sm" hx-delete="/retailers/{{.RetailerID}}" hx-target="#retailer-list" hx-swap="outerHTML" @click="if(!confirm('Delete this retailer?')) throw new Error()">Delete</button>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:2rem;">No retailers yet</td></tr>
+    {{end}}
+  </tbody>
+</table>
+
+{{if gt .pages 1}}
+<div class="pagination">
+  {{range $i := seq 1 .pages}}
+  <a href="/retailers?page={{$i}}" hx-get="/retailers?page={{$i}}" hx-target="#retailer-list" hx-swap="outerHTML" class="{{if eq $i $.page}}active{{end}}">{{$i}}</a>
+  {{end}}
+</div>
+{{end}}
+{{end}}
+
+{{define "medicines_results"}}
+{{if .query}}
+  <div class="card">
+    <p style="color:#64748b;font-size:0.85rem;margin-bottom:0.75rem;">Results for "{{.query}}"</p>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Name</th><th>Created</th></tr>
+      </thead>
+      <tbody>
+        {{range .items}}
+        <tr>
+          <td>{{.ID}}</td>
+          <td>{{.Name}}</td>
+          <td>{{.CreatedAt.Format "Jan 02, 2006"}}</td>
+        </tr>
+        {{else}}
+        <tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:2rem;">No medicines found</td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+{{end}}
+{{end}}
+
+{{define "inventory_results"}}
+{{if gt .medicineID 0}}
+  <div class="card">
+    <p style="color:#64748b;font-size:0.85rem;margin-bottom:0.75rem;">Stockists carrying medicine #{{.medicineID}}</p>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Name</th><th>Business</th><th>City</th><th>State</th></tr>
+      </thead>
+      <tbody>
+        {{range .stockists}}
+        <tr>
+          <td>{{.StockistID}}</td>
+          <td>{{.OwnerName}}</td>
+          <td>{{.BusinessName}}</td>
+          <td>{{.City}}</td>
+          <td>{{.State}}</td>
+        </tr>
+        {{else}}
+        <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:2rem;">No stockists found for this medicine</td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+{{end}}
+{{end}}

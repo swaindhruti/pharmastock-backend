@@ -10,7 +10,8 @@ import (
 )
 
 type Module struct {
-	Handler *Handler
+	Handler  *Handler
+	Renderer *TemplateRenderer
 }
 
 func NewModule(
@@ -21,7 +22,7 @@ func NewModule(
 	authSvc auth.Service,
 	uploadSvc upload.Service,
 ) *Module {
-	renderer := NewTemplateRenderer("internal/ui/templates/*.gohtml")
+	renderer := NewTemplateRenderer("internal/ui/templates")
 	h := NewHandler(renderer, stockistSvc, retailerSvc, medicineSvc, inventorySvc, authSvc, uploadSvc)
-	return &Module{Handler: h}
+	return &Module{Handler: h, Renderer: renderer}
 }

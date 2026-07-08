@@ -97,6 +97,7 @@ func NewApp() (*App, error) {
 		authModule.Service,
 		uploadSvc,
 	)
+	e.Renderer = uiModule.Renderer
 	ui.RegisterRoutes(e, uiModule.Handler)
 
 	// Seed admin user from env

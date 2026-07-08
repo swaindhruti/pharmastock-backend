@@ -2,7 +2,7 @@ services:
 
   postgres:
 
-    image: postgres:latest
+    image: postgres:17
     container_name: pharmastock-postgres
     restart: always
     environment:
