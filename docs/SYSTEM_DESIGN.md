@@ -277,15 +277,19 @@ flowchart TB
     subgraph UI_Flow["UI Request (/)"]
         direction TB
         B1["Browser request"] --> B2["RequestID"]
-        B2 --> B3["Logger"]
+        B2 --> B_GZ["Gzip middleware<br/>(compress response)"]
+        B_GZ --> B_CC["Cache-Control<br/>set per handler"]
+        B_CC --> B3["Logger"]
         B3 --> B4["Recovery"]
-        B4 --> B5["UI Handler<br/>(calls internal services)"]
-        B5 --> B6["TemplateRenderer.Render()<br/>(per-page clone)"]
-        B6 --> B7{"HTMX partial request<br/>(HX-Request header)?"}
-        B7 -->|Yes| B8["Render named partial<br/>(e.g. 'stockists_list')"]
-        B7 -->|No| B9["Execute 'layout' template<br/>(finds page's own 'content')"]
-        B8 --> B10["HTML fragment"]
-        B9 --> B11["Full HTML page<br/>+ Alpine.js + HTMX"]
+        B4 --> B5{"Service error?"}
+        B5 -->|"Yes + HX request"| B_ERR["renderError()<br/>→ small &lt;div class='alert'&gt; fragment"]
+        B5 -->|"No"| B6["UI Handler<br/>(calls internal services)"]
+        B6 --> B7["TemplateRenderer.Render()<br/>(per-page clone)"]
+        B7 --> B8{"HTMX partial request<br/>(HX-Request header)?"}
+        B8 -->|Yes| B9["Render named partial<br/>(e.g. 'stockists_list')<br/>Cache-Control: max-age=30"]
+        B8 -->|No| B10["Execute 'layout' template<br/>(finds page's own 'content')<br/>Cache-Control: no-cache"]
+        B9 --> B11["HTML fragment"]
+        B10 --> B12["Full HTML page<br/>+ Alpine.js + HTMX"]
     end
 ```
 
@@ -294,16 +298,19 @@ flowchart TB
 ## Design Decisions
 
 | Decision | Rationale |
-|---|---|
+|---|---|---|
 | **Modular monolith** | Clear domain boundaries without microservice overhead |
 | **Raw SQL / pgx** | Full query control, no ORM hidden N+1 |
 | **DTOs ≠ domain models** | API contract changes don't affect internal logic; domain models have no JSON tags |
 | **Sentinel errors** | `ErrNotFound` → 404, `ErrDuplicateEmail` → 409; handled via `errors.Is()` |
-| **pg_trgm GIN index** | Fuzzy medicine name search with trigram similarity |
-| **ON CONFLICT DO NOTHING** | Idempotent inserts — no duplicate error handling needed |
+| **pg_trgm GIN index** | Fuzzy medicine name search with trig similarity |
+| **ON CONFLICT DO NOTHING** | Idempotent inserts — no duplicate error handling |
 | **Polling-based worker** | Simple, no external queue; reset stale jobs every cycle |
 | **Per-page template clones** | Prevents `{{define "content"}}` collisions; each page has its own template set |
 | **HTMX + Alpine.js** | Server-rendered HTML, minimal JS, no SPA build step |
+| **Gzip compression** | Echo middleware compresses responses on-the-fly; negligible CPU cost for bandwidth savings |
+| **Response caching** | List partials carry `Cache-Control: private, max-age=30`; dynamic pages use `no-cache, private` |
+| **HTMX error fragments** | Service errors during HTMX requests return a `<div class="alert">` fragment instead of re-rendering the full page — faster, less bandwidth |
 
 ---
 

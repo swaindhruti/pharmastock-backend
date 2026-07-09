@@ -146,6 +146,25 @@
 {{end}}
 {{end}}
 
+{{define "upload_card"}}
+{{if .success}}
+  <div class="alert alert-success">Upload accepted! Job ID: <strong>{{.jobID}}</strong></div>
+{{end}}
+<div class="card" style="max-width: 500px;">
+  <form hx-post="/upload" hx-target="this" hx-swap="outerHTML" hx-encoding="multipart/form-data">
+    <div class="mb-2">
+      <label for="stockist_id">Stockist ID</label>
+      <input id="stockist_id" name="stockist_id" type="number" required placeholder="e.g. 1">
+    </div>
+    <div class="mb-2">
+      <label for="file">File (.csv or .pdf)</label>
+      <input id="file" name="file" type="file" accept=".csv,.pdf" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Upload</button>
+  </form>
+</div>
+{{end}}
+
 {{define "inventory_results"}}
 {{if gt .medicineID 0}}
   <div class="card">

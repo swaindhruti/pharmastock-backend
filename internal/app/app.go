@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v5"
+	echomw "github.com/labstack/echo/v5/middleware"
 	"go.uber.org/zap"
 
 	"github.com/swaindhruti/pharmastock-backend/internal/auth"
@@ -53,7 +54,7 @@ func NewApp() (*App, error) {
 
 	e := echo.New()
 
-	e.Use(middleware.RequestID(), middleware.Logger(logger), middleware.Recovery())
+	e.Use(middleware.RequestID(), echomw.Gzip(), middleware.Logger(logger), middleware.Recovery())
 
 	// Stockist module
 	stockistModule := stockist.NewModule(db.Pool)

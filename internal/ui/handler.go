@@ -47,7 +47,20 @@ func NewHandler(
 
 func (h *Handler) render(c *echo.Context, template string, data map[string]any) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+	c.Response().Header().Set("Cache-Control", "no-cache, private")
 	return c.Render(http.StatusOK, template, data)
+}
+
+func (h *Handler) renderCached(c *echo.Context, template string, data map[string]any) error {
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+	c.Response().Header().Set("Cache-Control", "private, max-age=30")
+	return c.Render(http.StatusOK, template, data)
+}
+
+func (h *Handler) renderError(c *echo.Context, msg string) error {
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+	c.Response().Header().Set("Cache-Control", "no-cache, private")
+	return c.HTML(http.StatusOK, `<div class="alert alert-error">`+msg+`</div>`)
 }
 
 func (h *Handler) LoginPage(c *echo.Context) error {
@@ -102,22 +115,32 @@ func (h *Handler) StockistsPage(c *echo.Context) error {
 	}
 	result, err := h.stockistSvc.ListStockists(c.Request().Context(), page, 20)
 	if err != nil {
+		if c.Request().Header.Get("HX-Request") == "true" {
+			return h.renderError(c, "failed to load stockists")
+		}
 		return h.render(c, "stockists", map[string]any{"title": "Stockists", "error": "failed to load stockists"})
 	}
 
 	isHX := c.Request().Header.Get("HX-Request") == "true"
-	tmpl := "stockists"
 	if isHX {
-		tmpl = "stockists_list"
+		return h.renderCached(c, "stockists_list", map[string]any{
+			"title": "Stockists",
+			"items": result.Items,
+			"total": result.Total,
+			"page":  result.Page,
+			"limit": result.Limit,
+			"pages": result.TotalPages,
+			"isHX":  true,
+		})
 	}
-	return h.render(c, tmpl, map[string]any{
+	return h.render(c, "stockists", map[string]any{
 		"title":   "Stockists",
 		"items":   result.Items,
 		"total":   result.Total,
 		"page":    result.Page,
 		"limit":   result.Limit,
 		"pages":   result.TotalPages,
-		"isHX":    isHX,
+		"isHX":    false,
 	})
 }
 
@@ -148,7 +171,7 @@ func (h *Handler) StockistCreate(c *echo.Context) error {
 		page = 1
 	}
 	result, _ := h.stockistSvc.ListStockists(c.Request().Context(), page, 20)
-	return h.render(c, "stockists_list", map[string]any{
+	return h.renderCached(c, "stockists_list", map[string]any{
 		"items":  result.Items,
 		"total":  result.Total,
 		"page":   result.Page,
@@ -213,7 +236,7 @@ func (h *Handler) StockistUpdate(c *echo.Context) error {
 		page = 1
 	}
 	result, _ := h.stockistSvc.ListStockists(c.Request().Context(), page, 20)
-	return h.render(c, "stockists_list", map[string]any{
+	return h.renderCached(c, "stockists_list", map[string]any{
 		"items": result.Items, "total": result.Total,
 		"page": result.Page, "limit": result.Limit, "pages": result.TotalPages,
 		"isHX": true,
@@ -232,7 +255,7 @@ func (h *Handler) StockistDelete(c *echo.Context) error {
 		page = 1
 	}
 	result, _ := h.stockistSvc.ListStockists(c.Request().Context(), page, 20)
-	return h.render(c, "stockists_list", map[string]any{
+	return h.renderCached(c, "stockists_list", map[string]any{
 		"items": result.Items, "total": result.Total,
 		"page": result.Page, "limit": result.Limit, "pages": result.TotalPages,
 		"isHX": true,
@@ -246,22 +269,32 @@ func (h *Handler) RetailersPage(c *echo.Context) error {
 	}
 	result, err := h.retailerSvc.ListRetailers(c.Request().Context(), page, 20)
 	if err != nil {
+		if c.Request().Header.Get("HX-Request") == "true" {
+			return h.renderError(c, "failed to load retailers")
+		}
 		return h.render(c, "retailers", map[string]any{"title": "Retailers", "error": "failed to load retailers"})
 	}
 
 	isHX := c.Request().Header.Get("HX-Request") == "true"
-	tmpl := "retailers"
 	if isHX {
-		tmpl = "retailers_list"
+		return h.renderCached(c, "retailers_list", map[string]any{
+			"title": "Retailers",
+			"items": result.Items,
+			"total": result.Total,
+			"page":  result.Page,
+			"limit": result.Limit,
+			"pages": result.TotalPages,
+			"isHX":  true,
+		})
 	}
-	return h.render(c, tmpl, map[string]any{
-		"title": "Retailers",
-		"items": result.Items,
-		"total": result.Total,
-		"page":  result.Page,
-		"limit": result.Limit,
-		"pages": result.TotalPages,
-		"isHX":  isHX,
+	return h.render(c, "retailers", map[string]any{
+		"title":   "Retailers",
+		"items":   result.Items,
+		"total":   result.Total,
+		"page":    result.Page,
+		"limit":   result.Limit,
+		"pages":   result.TotalPages,
+		"isHX":    false,
 	})
 }
 
@@ -292,7 +325,7 @@ func (h *Handler) RetailerCreate(c *echo.Context) error {
 		page = 1
 	}
 	result, _ := h.retailerSvc.ListRetailers(c.Request().Context(), page, 20)
-	return h.render(c, "retailers_list", map[string]any{
+	return h.renderCached(c, "retailers_list", map[string]any{
 		"items": result.Items, "total": result.Total,
 		"page": result.Page, "limit": result.Limit, "pages": result.TotalPages,
 		"isHX": true,
@@ -354,7 +387,7 @@ func (h *Handler) RetailerUpdate(c *echo.Context) error {
 		page = 1
 	}
 	result, _ := h.retailerSvc.ListRetailers(c.Request().Context(), page, 20)
-	return h.render(c, "retailers_list", map[string]any{
+	return h.renderCached(c, "retailers_list", map[string]any{
 		"items": result.Items, "total": result.Total,
 		"page": result.Page, "limit": result.Limit, "pages": result.TotalPages,
 		"isHX": true,
@@ -373,7 +406,7 @@ func (h *Handler) RetailerDelete(c *echo.Context) error {
 		page = 1
 	}
 	result, _ := h.retailerSvc.ListRetailers(c.Request().Context(), page, 20)
-	return h.render(c, "retailers_list", map[string]any{
+	return h.renderCached(c, "retailers_list", map[string]any{
 		"items": result.Items, "total": result.Total,
 		"page": result.Page, "limit": result.Limit, "pages": result.TotalPages,
 		"isHX": true,
@@ -425,7 +458,6 @@ func (h *Handler) InventoryPage(c *echo.Context) error {
 }
 
 func (h *Handler) UploadPage(c *echo.Context) error {
-	// Show the upload form, optionally with a success message
 	return h.render(c, "upload", map[string]any{
 		"title": "Upload",
 	})
@@ -434,30 +466,52 @@ func (h *Handler) UploadPage(c *echo.Context) error {
 func (h *Handler) UploadFile(c *echo.Context) error {
 	stockistIDStr := c.FormValue("stockist_id")
 	if stockistIDStr == "" {
+		if c.Request().Header.Get("HX-Request") == "true" {
+			return h.renderError(c, "stockist_id is required")
+		}
 		return h.render(c, "upload", map[string]any{"title": "Upload", "error": "stockist_id is required"})
 	}
 	stockistID, err := strconv.ParseInt(stockistIDStr, 10, 64)
 	if err != nil {
+		if c.Request().Header.Get("HX-Request") == "true" {
+			return h.renderError(c, "invalid stockist_id")
+		}
 		return h.render(c, "upload", map[string]any{"title": "Upload", "error": "invalid stockist_id"})
 	}
 
 	file, header, err := c.Request().FormFile("file")
 	if err != nil {
+		if c.Request().Header.Get("HX-Request") == "true" {
+			return h.renderError(c, "file is required")
+		}
 		return h.render(c, "upload", map[string]any{"title": "Upload", "error": "file is required"})
 	}
 	defer file.Close()
 
 	jobID, err := h.uploadSvc.ProcessUpload(c.Request().Context(), stockistID, file, header)
 	if err != nil {
+		msg := err.Error()
 		if errors.Is(err, upload.ErrInvalidFileType) {
-			return h.render(c, "upload", map[string]any{"title": "Upload", "error": err.Error()})
+			msg = err.Error()
+		} else {
+			msg = "upload failed"
 		}
-		return h.render(c, "upload", map[string]any{"title": "Upload", "error": "upload failed"})
+		if c.Request().Header.Get("HX-Request") == "true" {
+			return h.renderError(c, msg)
+		}
+		return h.render(c, "upload", map[string]any{"title": "Upload", "error": msg})
+	}
+
+	if c.Request().Header.Get("HX-Request") == "true" {
+		return h.render(c, "upload_card", map[string]any{
+			"jobID":   jobID,
+			"success": true,
+		})
 	}
 
 	return h.render(c, "upload", map[string]any{
-		"title": "Upload",
-		"jobID": jobID,
+		"title":   "Upload",
+		"jobID":   jobID,
 		"success": true,
 	})
 }

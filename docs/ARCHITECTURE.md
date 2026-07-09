@@ -30,7 +30,8 @@ pharmastock-backend/
 │   │   ├── middleware.go         # AuthRequired, RequireRole
 │   │   ├── jwt.go                # HS256 generate + validate (24h)
 │   │   ├── password.go           # bcrypt hash + verify
-│   │   ├── model.go              # User, Claims, DTOs
+│   │   ├── model.go              # User, Claims
+│   │   ├── dto.go                # Login, Register DTOs with validation
 │   │   └── routes.go
 │   │
 │   ├── stockist/                 # Distributor module
@@ -115,6 +116,8 @@ flowchart TB
     subgraph Global["Global — all routes"]
         direction LR
         REQ["RequestID<br/>inject / forward X-Request-ID"]
+        GZ["Gzip<br/>compress responses<br/>(Accept-Encoding: gzip)"]
+        CC["Cache-Control<br/>no-cache / max-age=30<br/>(set per handler)"]
         LOG["Logger<br/>method · path · status · latency · IP"]
         REC["Recovery<br/>panic → 500"]
     end
@@ -134,7 +137,7 @@ flowchart TB
         PUB_H["Handler (no auth)"]
     end
 
-    REQ --> LOG --> REC
+    REQ --> GZ --> CC --> LOG --> REC
     REC -->|/api/v1/auth/login, /health| PUB_H
     REC -->|/api/v1/*| AUTH
     AUTH -->|valid token| ROLE
@@ -390,3 +393,6 @@ func (a *App) Start(ctx context.Context) error {
 - **Polling interval** — 10s (tunable), suitable for moderate upload volume
 - **No N+1** — all lookups fetch complete result sets
 - **Template clones** — pre-compiled per-page, no runtime collision overhead
+- **Gzip compression** — Echo middleware compresses responses on-the-fly when client sends `Accept-Encoding: gzip`
+- **Cache-Control headers** — list partials (`stockists_list`, `retailers_list`) are cached by the browser for 30s; error/dynamic responses use `no-cache`
+- **HTMX error fragments** — on service errors, HTMX requests receive a small `<div class="alert">` fragment instead of a full page re-render, reducing bandwidth
